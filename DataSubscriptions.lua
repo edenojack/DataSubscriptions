@@ -1,8 +1,7 @@
-local EdTech            = require(game:GetService("ReplicatedFirst").EdTech.Starter)
-local RunService 		= game:GetService("RunService")
-
-local IsServer 		    = RunService:IsServer()
-local Communication     = EdTech.Get("Communication")
+local RunService 	= game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local IsServer 		= RunService:IsServer()
+local RemoteFolder	= ReplicatedStorage:WaitForChild("Remotes")
 
 local Subscriptions = {}
 local ActiveSubscriptions   = {}
@@ -89,7 +88,20 @@ end
 
 --//SERVER FUNCTIONS
 if IsServer then
-    local ServerCommunication   = Communication
+    local ServerCommunication   = {
+		FireSelectClients = function(PlayerList, RemoteName, ...)
+			local ThisRemote = RemoteFolder:FindFirstChild(RemoteName)
+			if not ThisRemote then return end
+			for n, ThisPlayer in pairs(PlayerList) do
+				ThisRemote:FireClient(ThisPlayer, ...)
+			end
+		end;
+		FireRemoteEvent = function(ThisPlayer, RemoteName, ...)
+			local ThisRemote = RemoteFolder:FindFirstChild(RemoteName)
+			if not ThisRemote then return end
+			ThisRemote:FireClient(ThisPlayer, ...)
+		end;
+	}
 
     ServerCommunication.RegisterEvent("Subscriptions")
 
@@ -283,9 +295,7 @@ if IsServer == false then
         end
     end
 
-    Communication.BindRemoteEvent("Subscriptions", function(...)
-        Subscriptions.IncommingData(...)
-    end)
+    RemoteFolder.Subscriptions.OnClientEvent(Subscriptions.IncommingData)
 end
 
 return Subscriptions
